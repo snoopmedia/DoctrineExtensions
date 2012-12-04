@@ -243,6 +243,10 @@ class LoggableListener extends MappedEventSubscriber
                     if (!in_array($field, $config['versioned'])) {
                         continue;
                     }
+                    if ($changes[0] == $changes[1]) {
+                        // For "changed" DateTime-ObjectIds and equality of '' and NULL in strings
+                        continue;
+                    }
                     $value = $changes[1];
                     if ($meta->isSingleValuedAssociation($field) && $value) {
                         $oid = spl_object_hash($value);
@@ -256,6 +260,10 @@ class LoggableListener extends MappedEventSubscriber
                         }
                     }
                     $newValues[$field] = $value;
+                }
+                if ($action === self::ACTION_UPDATE && !$newValues) {
+                    // No empty update logs
+                    return;
                 }
                 $logEntry->setData($newValues);
             }
@@ -271,7 +279,6 @@ class LoggableListener extends MappedEventSubscriber
             $logEntry->setVersion($version);
 
             $this->prePersistLogEntry($logEntry, $object);
-
             $om->persist($logEntry);
             $uow->computeChangeSet($logEntryMeta, $logEntry);
         }
