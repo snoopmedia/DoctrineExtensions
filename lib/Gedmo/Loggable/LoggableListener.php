@@ -266,6 +266,18 @@ class LoggableListener extends MappedEventSubscriber
                     return;
                 }
                 $logEntry->setData($newValues);
+            } else if ($action == self::ACTION_REMOVE && isset($config['versioned'])) {
+                $objectMeta = $om->getClassMetadata($logEntry->getObjectClass());
+                $fieldNames = $objectMeta->getFieldNames();
+                foreach ($fieldNames as $column => $field) {
+                    if (!in_array($field, $config['versioned'])) {
+                        continue;
+                    }
+
+                    $getter = 'get' . ucfirst($field);
+                    $newValues[$field] = $object->{$getter}();
+                }
+                $logEntry->setData($newValues);
             }
             $version = 1;
             $logEntryMeta = $om->getClassMetadata($logEntryClass);
